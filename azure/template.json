@@ -29,18 +29,6 @@
         "sharedEnvResourceGroup": {
             "type": "string"
         },
-        "sharedEnvVirtualNetworkName": {
-            "type": "string"
-        },
-        "subnetObject": {
-            "type": "object"
-        },
-        "subnetServiceEndpointList": {
-            "type": "array"
-        },
-        "subnetDelegations": {
-            "type": "array"
-        },
         "configurationStorageConnectionString": {
             "type": "securestring"
         },
@@ -123,19 +111,6 @@
             "metadata": {
                 "description": "Enables alerting on app insights failed requests"
             }
-        },
-        "EnableRouteTableAssociation": {
-            "type": "bool",
-            "defaultValue": false,
-            "metadata": {
-                "description": "Determines whether to enable route table association on subnet"
-            }
-        },
-        "SharedRouteTableName": {
-            "type": "string",
-            "metadata": {
-                "description": "Determines whether to enable route table association on subnet"
-            }
         }
     },
     "variables": {
@@ -143,12 +118,7 @@
         "resourceNamePrefix": "[toLower(concat('das-', parameters('resourceEnvironmentName'),'-', parameters('serviceName')))]",
         "resourceGroupName": "[concat(variables('resourceNamePrefix'), 'api-rg')]",
         "appServiceName": "[concat(variables('resourceNamePrefix'), 'api-as')]",
-        "appServicePlanName": "[concat(variables('resourceNamePrefix'), 'api-asp')]",
-        "databaseName": "[concat(variables('resourceNamePrefix'), '-db')]",
-        "routeTableId": {
-            "id": "[resourceId(subscription().subscriptionId, parameters('sharedEnvResourceGroup'), 'Microsoft.Network/routeTables', parameters('SharedRouteTableName'))]"
-        },
-        "emptyObject": {}
+        "databaseName": "[concat(variables('resourceNamePrefix'), '-db')]"
     },
     "resources": [
         {
@@ -158,84 +128,6 @@
             "location": "[parameters('resourceGroupLocation')]",
             "tags": "[parameters('tags')]",
             "properties": {}
-        },
-        {
-            "apiVersion": "2020-10-01",
-            "name": "[concat('app-service-plan-', parameters('utcValue'))]",
-            "type": "Microsoft.Resources/deployments",
-            "resourceGroup": "[variables('resourceGroupName')]",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[concat(variables('deploymentUrlBase'),'app-service-plan.json')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "appServicePlanName": {
-                        "value": "[variables('appServicePlanName')]"
-                    },
-                    "aspSize": {
-                        "value": "1"
-                    },
-                    "aspInstances": {
-                        "value": 2
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2020-10-01",
-            "name": "[concat('reservations-api-subnet-', parameters('utcValue'))]",
-            "resourceGroup": "[parameters('sharedEnvResourceGroup')]",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[concat(variables('deploymentUrlBase'),'subnet.json')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "virtualNetworkName": {
-                        "value": "[parameters('sharedEnvVirtualNetworkName')]"
-                    },
-                    "subnetName": {
-                        "value": "[parameters('subnetObject').name]"
-                    },
-                    "subnetAddressPrefix": {
-                        "value": "[parameters('subnetObject').addressSpace]"
-                    },
-                    "serviceEndpointList": {
-                        "value": "[parameters('subnetServiceEndpointList')]"
-                    },
-                    "delegations": {
-                        "value": "[parameters('subnetDelegations')]"
-                    },
-                    "routeTable": {
-                        "value": "[if(parameters('enableRouteTableAssociation'), variables('routeTableId') , variables('emptyObject'))]"
-                    }
-                }
-            }
-        },
-        {
-            "apiVersion": "2021-04-01",
-            "name": "[concat('reservations-api-sql-firewall-rule-', parameters('utcValue'))]",
-            "resourceGroup": "[parameters('sharedEnvResourceGroup')]",
-            "type": "Microsoft.Resources/deployments",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[concat(variables('deploymentUrlBase'), 'sql-server-firewall-rules.json')]",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "serverName": {
-                        "value": "[parameters('sharedSQLServerName')]"
-                    },
-                    "subnetResourceIdList": {
-                        "value": "[createArray(reference(concat('reservations-api-subnet-', parameters('utcValue'))).outputs.SubnetResourceId.value)]"
-                    }
-                }
-            }
         },
         {
             "apiVersion": "2020-10-01",
